@@ -1,4 +1,7 @@
 use actix_web::{post, web, App, HttpResponse, HttpServer, ResponseError};
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
+use rusqlite::params;
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -40,7 +43,22 @@ async fn set_schedule(params: web::Form<SlackPayload>) -> Result<HttpResponse, M
 
 #[actix_rt::main]
 async fn main() -> Result<(), actix_web::Error> {
-    HttpServer::new(move || App::new().service(set_schedule))
+    let manager = SqliteConnectionManager::file("schedule.db");
+    let pool = Pool::new(manager).expect("Failed to initialize the connection pool.");
+    let conn = pool
+        .get()
+        .expect("Failed to get the connection from the pool.");
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS schedule (
+            id  TEXT PRIMARY KEY,
+            thisweek TEXT NOT NULL,
+            nextweel TEXT NOT NULL
+        )",
+        params![],
+    )
+    .expect("Failed to create a table `schedule`.");
+
+    HttpServer::new(move || App::new().service(set_schedule).data(pool.clone()))
         .bind("localhost:3000")?
         .run()
         .await?;

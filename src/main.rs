@@ -20,9 +20,6 @@ struct SlackPayload {
 
 #[derive(Error, Debug)]
 enum MyError {
-    #[error("Failed to render HTML")]
-    AskamaError(#[from] askama::Error),
-
     #[error("Failed to get connection")]
     ConnectionPoolError(#[from] r2d2::Error),
 

@@ -2,9 +2,20 @@ use actix_web::{post, web, App, HttpResponse, HttpServer, ResponseError};
 use serde::Deserialize;
 use thiserror::Error;
 
-#[derive(Deserialize)]
-struct Week {
+#[derive(Debug, Deserialize)]
+struct SlackPayload {
+    token: String,
+    team_id: String,
+    team_domain: String,
+    channel_id: String,
+    channel_name: String,
+    user_id: String,
+    user_name: String,
+    command: String,
     text: String,
+    response_url: String,
+    trigger_id: String,
+    api_app_id: String,
 }
 
 #[derive(Error, Debug)]
@@ -21,9 +32,9 @@ enum MyError {
 
 impl ResponseError for MyError {}
 
-#[post("/")]
-async fn set_schedule(params: web::Form<Week>) -> Result<HttpResponse, MyError> {
-    println!("{}", params.text);
+#[post("/thisweek")]
+async fn set_schedule(params: web::Form<SlackPayload>) -> Result<HttpResponse, MyError> {
+    println!("{:?}", params);
     Ok(HttpResponse::Ok()
         .content_type("plain/text")
         .header("X-Hdr", "sample")

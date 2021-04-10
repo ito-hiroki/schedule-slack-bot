@@ -33,12 +33,24 @@ enum MyError {
 impl ResponseError for MyError {}
 
 #[post("/thisweek")]
-async fn set_schedule(params: web::Form<SlackPayload>) -> Result<HttpResponse, MyError> {
+async fn set_schedule(
+    params: web::Form<SlackPayload>,
+    db: web::Data<Pool<SqliteConnectionManager>>,
+) -> Result<HttpResponse, MyError> {
     println!("{:?}", params);
+
+    let conn = db.get()?;
+    conn.execute(
+        "INSERT INTO schedule (id , thisweek) VALUES (?1, ?2)
+         ON CONFLICT(id) DO UPDATE SET thisweek=?2",
+        &[&params.user_id, &params.text],
+    )
+    .expect("Failed to insert.");
+
     Ok(HttpResponse::Ok()
         .content_type("plain/text")
         .header("X-Hdr", "sample")
-        .body(format!("Bot received this data: {}", params.text)))
+        .body(format!("Your schedule is {}", params.text)))
 }
 
 #[actix_rt::main]
@@ -52,7 +64,7 @@ async fn main() -> Result<(), actix_web::Error> {
         "CREATE TABLE IF NOT EXISTS schedule (
             id  TEXT PRIMARY KEY,
             thisweek TEXT NOT NULL,
-            nextweel TEXT NOT NULL
+            nextweek TEXT DEFAULT ''
         )",
         params![],
     )
